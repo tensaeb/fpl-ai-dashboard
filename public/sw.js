@@ -1,26 +1,33 @@
 /**
- * FPL//AI Service Worker — fplai-v1
+ * FPL//AI Service Worker — fplai-v2
  *
  * Strategy:
- *  - Static assets (/_next/static/, /icons/, /images/): cache-first
+ *  - Static assets (/_next/static/, /icons/, /images/): network-first
  *  - Navigation requests (pages, API): network-first with offline fallback
  *  - Offline fallback: /offline.html (pre-cached on install)
  *
- * Bump CACHE_NAME to bust all caches on deploy.
+ * NOTE: _next/static/ was moved from cache-first to network-first because
+ * dev bundles change on every HMR update and the SW would serve stale JS,
+ * causing hydration mismatches and hiding code changes at localhost:3000.
+ * In production, HTTP cache headers already handle static asset caching.
  */
 
-const CACHE_NAME = "fplai-v1";
+const CACHE_NAME = "fplai-v2";
 const OFFLINE_URL = "/offline.html";
 
 // Assets to pre-cache on install
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
 
-// Patterns that should always use cache-first (static assets)
+// Patterns that should use cache-first (only truly immutable assets)
 const CACHE_FIRST_PATTERNS = [
-  /\/_next\/static\//,
   /\/icons\//,
   /\/images\//,
   /\.(?:woff2?|ttf|eot)$/,
+];
+
+// Patterns that should use network-first (includes _next/static/)
+const NETWORK_FIRST_PATTERNS = [
+  /\/_next\/static\//,
 ];
 
 // ─── Install ─────────────────────────────────────────────────────────────────
@@ -63,13 +70,19 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET requests
   if (request.method !== "GET") return;
 
-  // Cache-first for static assets
+  // Network-first for _next/static/ and similar dynamic assets
+  if (NETWORK_FIRST_PATTERNS.some((p) => p.test(url.pathname))) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // Cache-first for truly static assets
   if (CACHE_FIRST_PATTERNS.some((p) => p.test(url.pathname))) {
     event.respondWith(cacheFirst(request));
     return;
   }
 
-  // Network-first for navigations and everything else
+  // Network-first for navigations with offline fallback
   if (request.mode === "navigate") {
     event.respondWith(networkFirstWithOfflineFallback(request));
     return;

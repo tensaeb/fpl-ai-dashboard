@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import { SwRegister } from "./sw-register";
+import { HydrationFix } from "@/components/ui/hydration-fix";
 import "./globals.css";
 
 const display = Space_Grotesk({
@@ -67,6 +68,21 @@ export const metadata: Metadata = {
   },
 };
 
+// Runs before hydration so the correct theme is applied on first paint.
+// Previously the body's colors were hardcoded dark directly in this file,
+// which meant the CSS variable theme system below it was permanently
+// overridden and the toggle only ever took visible effect after a click —
+// light mode was never actually reachable on page load.
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var saved = localStorage.getItem("fplai_theme");
+    var dark = saved ? saved === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.classList.toggle("dark", dark);
+  } catch (_) {}
+})();
+`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
@@ -75,7 +91,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-[#07090e] text-[#f1f5f9] antialiased selection:bg-[#00f59b] selection:text-[#051a10]">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-screen bg-void text-ink antialiased selection:bg-neon selection:text-void" suppressHydrationWarning>
+        <HydrationFix />
         {children}
         <SwRegister />
       </body>
