@@ -2,8 +2,9 @@
 
 # FPL//AI  ·  Gameweek Intelligence
 
-**Structured AI-powered Fantasy Premier League briefings, fixture swing radars, and transfer intelligence — built with zero passwords, public data endpoints, and a ruthless availability filter.**
+**Structured AI-powered Fantasy Premier League briefings, fixture swing radars, and player intelligence — built with zero passwords, public data endpoints, and a ruthless availability filter.**
 
+[![Repo](https://img.shields.io/badge/GitHub-tensaeb%2Ffpl--ai--dashboard-181717?style=flat-square&logo=github)](https://github.com/tensaeb/fpl-ai-dashboard)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
@@ -43,7 +44,7 @@ FPL//AI is fully installable on mobile and desktop:
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-username/fpl-ai-dashboard.git
+git clone https://github.com/tensaeb/fpl-ai-dashboard.git
 cd fpl-ai-dashboard
 npm install
 ```
