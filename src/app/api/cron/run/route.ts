@@ -14,8 +14,10 @@ export const maxDuration = 300;
  *  - Without CRON_SECRET: runs in open mode so the flow is demonstrable,
  *    and the response says so loudly. Set the secret before going public.
  *
- * The job itself is idempotent (20h staleness gate per entry), so hourly
- * scheduling does not multiply LLM spend.
+ * The job itself is idempotent (20h staleness gate per entry). Schedules are
+ * daily-only because Vercel Hobby plans reject crons that run more than once
+ * a day; two daily entries (06:00 / 18:00 UTC) still cover the 30h pre-deadline
+ * regeneration window and keep scoring prompt.
  */
 async function handle(req: Request) {
   const expected = process.env.CRON_SECRET;

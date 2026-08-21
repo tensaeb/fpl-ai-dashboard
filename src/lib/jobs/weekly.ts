@@ -10,8 +10,10 @@ import { latestReport, listTrackedEntries, regenerateReport } from "../report/se
  * the deadline is near, regenerate server-side, email subscribers, then
  * score finished gameweeks against actual points.
  *
- * Idempotent by design: the 20h staleness gate means hourly invocation
- * won't re-spend on the LLM for the same entry.
+ * Idempotent by design: the 20h staleness gate means repeated daily
+ * invocation won't re-spend on the LLM for the same entry. A daily cadence
+ * always lands inside the 30h pre-deadline window (window > 24h gap), so a
+ * once-per-day Hobby-compatible schedule still regenerates before kickoff.
  */
 
 const STALE_MS = 20 * 3600 * 1000;
