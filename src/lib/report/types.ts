@@ -15,8 +15,9 @@ export const transferSchema = z.object({
   outId: z.number().int().optional(),
   in: z.string(),
   inId: z.number().int().optional(),
-  cost_delta: z.number(), // in £m — positive = extra spend required
+  cost_delta: z.number(),
   reasoning: z.string(),
+  gameweek: z.number().int().optional(),
 });
 
 export const reportSchema = z.object({

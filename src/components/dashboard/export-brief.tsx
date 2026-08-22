@@ -37,8 +37,9 @@ function buildMarkdown(report: StoredReport): string {
       const cost = t.cost_delta > 0
         ? `+£${t.cost_delta.toFixed(1)}m`
         : `−£${Math.abs(t.cost_delta).toFixed(1)}m`;
+      const gw = t.gameweek ? `GW${t.gameweek}` : "Current GW";
       lines.push(
-        `**Move ${i + 1}** (${cost})`,
+        `**${gw} — Move ${i + 1}** (${cost})`,
         `OUT: ${t.out} → IN: ${t.in}`,
         t.reasoning,
         "",

@@ -60,28 +60,27 @@ export function LiveClockBadge({ fetchedAt, mode }: { fetchedAt: string; mode: "
 }
 
 export function SectionHeading({
-  index,
   kicker,
   title,
   right,
+  // legacy prop — accepted but ignored so existing call-sites don't break
+  index: _index,
 }: {
-  index: string;
+  /** Optional numbered index — kept for API compatibility, no longer rendered */
+  index?: string;
   kicker: string;
   title: ReactNode;
   right?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex items-center gap-3.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-neon/30 bg-neon/10 font-mono text-xs font-bold text-neon shadow-[0_0_12px_rgba(0,245,155,0.2)]">
-          {index}
-        </span>
-        <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.28em] text-neon/90">{kicker}</p>
-          <h2 className="mt-0.5 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            {title}
-          </h2>
-        </div>
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">
+          {kicker}
+        </p>
+        <h2 className="mt-0.5 font-display text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
+          {title}
+        </h2>
       </div>
       {right}
     </div>

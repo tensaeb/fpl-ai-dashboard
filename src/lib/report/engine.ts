@@ -65,42 +65,47 @@ function transferBlock(norm: NormalizedData): Report["transfer_suggestions"] {
 
   const outs = [...norm.squad].sort((a, b) => outScore(a) - outScore(b));
 
-  for (const out of outs) {
-    if (suggestions.length >= 3) break;
-    const budget = norm.bank + out.price; // hard affordability, in £0.1m
-    const best = norm.pool
-      .filter(
-        (p) =>
-          p.elementType === out.elementType &&
-          !squadIds.has(p.id) &&
-          !chosen.has(p.id) &&
-          !isFlagged(p) &&
-          p.price <= budget &&
-          p.minutes >= Math.max(270, 180 * Math.min(norm.currentEventId, 10)),
-      )
-      .sort((a, b) => candidateScore(b, norm.currentEventId) - candidateScore(a, norm.currentEventId))[0];
+  const maxGw = norm.currentEventId + 2;
+  for (let gw = norm.currentEventId; gw <= maxGw && suggestions.length < 4; gw++) {
+    for (const out of outs) {
+      if (suggestions.length >= 4) break;
+      const budget = norm.bank + out.price;
+      const best = norm.pool
+        .filter(
+          (p) =>
+            p.elementType === out.elementType &&
+            !squadIds.has(p.id) &&
+            !chosen.has(p.id) &&
+            !isFlagged(p) &&
+            p.price <= budget &&
+            p.minutes >= Math.max(270, 180 * Math.min(norm.currentEventId, 10)),
+        )
+        .sort((a, b) => candidateScore(b, norm.currentEventId) - candidateScore(a, norm.currentEventId))[0];
 
-    if (!best) continue;
-    const gain = candidateScore(best, norm.currentEventId) - Math.max(outScore(out), 0);
-    if (gain < 2.4) continue; // don't churn for marginal upgrades
+      if (!best) continue;
+      const gain = candidateScore(best, norm.currentEventId) - Math.max(outScore(out), 0);
+      if (gain < 2.4) continue;
 
-    const delta = best.price - out.price; // tenths
-    chosen.add(best.id);
-    suggestions.push({
-      out: out.name,
-      outId: out.id,
-      in: best.name,
-      inId: best.id,
-      cost_delta: Math.round((delta / 10) * 10) / 10,
-      reasoning:
-        `${out.name} (${out.teamShort}) is on ${f(out.form)} form with a next-five averaging ${f(
-          out.avgDiffNext5,
-        )} difficulty${isFlagged(out) ? " and an active availability flag" : ""}. ` +
-        `${best.name} (${best.teamShort}) offers ${f(best.form)} form, ${f(best.ppg)} ppg and a ${f(
-          best.avgDiffNext5,
-        )} difficulty run ${delta > 0 ? `for £${m(delta)}m net` : `releasing £${m(-delta)}m`}. ` +
-        `Affordable within your £${m(norm.bank)}m bank.`,
-    });
+      const delta = best.price - out.price;
+      chosen.add(best.id);
+      const gwLabel = gw === norm.currentEventId ? "this gameweek" : `GW${gw}`;
+      suggestions.push({
+        out: out.name,
+        outId: out.id,
+        in: best.name,
+        inId: best.id,
+        cost_delta: Math.round((delta / 10) * 10) / 10,
+        gameweek: gw,
+        reasoning:
+          `${out.name} (${out.teamShort}) is on ${f(out.form)} form with a next-five averaging ${f(
+            out.avgDiffNext5,
+          )} difficulty${isFlagged(out) ? " and an active availability flag" : ""}. ` +
+          `${best.name} (${best.teamShort}) offers ${f(best.form)} form, ${f(best.ppg)} ppg and a ${f(
+            best.avgDiffNext5,
+          )} difficulty run ${delta > 0 ? `for £${m(delta)}m net` : `releasing £${m(-delta)}m`}. ` +
+          `Targeted for ${gwLabel}. Affordable within your £${m(norm.bank)}m bank.`,
+      });
+    }
   }
   return suggestions;
 }

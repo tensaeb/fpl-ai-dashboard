@@ -129,16 +129,41 @@ async function liveBundle(entryId: number): Promise<DashboardBundle> {
     fplGet<TransferRecord[]>(`/entry/${entryId}/transfers/`, TTL.transfers).catch(() => [] as TransferRecord[]),
   ]);
 
-  const leagueRefs = (entry.leagues?.classic ?? []).slice(0, 2);
-  const leagues = (
-    await Promise.all(
-      leagueRefs.map((l) =>
-        fplGet<LeagueStandings>(`/leagues-classic/${l.id}/standings/?page_standings=1`, TTL.league).catch(
-          () => null,
-        ),
-      ),
-    )
-  ).filter((l): l is LeagueStandings => l !== null);
+  const leagueRefs = entry.leagues?.classic ?? [];
+  const h2hRefs = entry.leagues?.h2h ?? [];
+  const leagues: LeagueStandings[] = [];
+  for (const l of leagueRefs) {
+    let page = 1;
+    let allResults: LeagueStandings["standings"]["results"] = [];
+    let hasNext = true;
+    while (hasNext) {
+      const data = await fplGet<LeagueStandings>(`/leagues-classic/${l.id}/standings/?page_standings=${page}`, TTL.league);
+      allResults = allResults.concat(data.standings.results);
+      hasNext = data.standings.has_next && allResults.length < 100;
+      page++;
+    }
+    leagues.push({
+      kind: "classic",
+      league: { id: l.id, name: l.name },
+      standings: { has_next: false, page: 1, results: allResults },
+    });
+  }
+  for (const l of h2hRefs) {
+    let page = 1;
+    let allResults: LeagueStandings["standings"]["results"] = [];
+    let hasNext = true;
+    while (hasNext) {
+      const data = await fplGet<LeagueStandings>(`/leagues-h2h/${l.id}/standings/?page_standings=${page}`, TTL.league);
+      allResults = allResults.concat(data.standings.results);
+      hasNext = data.standings.has_next && allResults.length < 100;
+      page++;
+    }
+    leagues.push({
+      kind: "h2h",
+      league: { id: l.id, name: `${l.name} (H2H)` },
+      standings: { has_next: false, page: 1, results: allResults },
+    });
+  }
 
   return {
     mode: "live",

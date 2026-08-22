@@ -254,6 +254,9 @@ export function buildDemoData(entryId: number, now = new Date()): DemoData {
         { id: 90210, name: "The Spreadsheet Society", entry_rank: 3 },
         { id: 104729, name: "Sunday League Analysts", entry_rank: 7 },
       ],
+      h2h: [
+        { id: 30301, name: "Friday Night FPL", entry_rank: 2 },
+      ],
     },
   };
 
@@ -287,7 +290,7 @@ export function buildDemoData(entryId: number, now = new Date()): DemoData {
   }
 
   const transfers: TransferRecord[] = [];
-  const leagues: LeagueStandings[] = (entry.leagues?.classic ?? []).map((l, li) => {
+  const leagues: LeagueStandings[] = [...(entry.leagues?.classic ?? []).map((l, li) => {
     const rr = mulberry32(555 + li);
     const rows = [
       { entry_name: "Expected Goals FC", player_name: "Demo Manager", entry: entryId, me: true, total: picks.entry_history.total_points },
@@ -308,10 +311,34 @@ export function buildDemoData(entryId: number, now = new Date()): DemoData {
         event_total: 40 + Math.floor(rr() * 40),
       }));
     return {
+      kind: "classic" as const,
       league: { id: l.id, name: l.name },
       standings: { has_next: false, page: 1, results: rows },
     };
-  });
+  }), ...(entry.leagues?.h2h ?? []).map((l, li) => {
+    const rr = mulberry32(666 + li);
+    const rows = [
+      { entry_name: "Expected Goals FC", player_name: "Demo Manager", entry: entryId, me: true, total: picks.entry_history.total_points },
+      { entry_name: "Haaland or Bust", player_name: "James K.", entry: 995, total: picks.entry_history.total_points + 10 + Math.floor(rr() * 25) },
+      { entry_name: "Bench Boost FC", player_name: "Sarah M.", entry: 996, total: picks.entry_history.total_points - 5 - Math.floor(rr() * 20) },
+    ]
+      .sort((a, b) => b.total - a.total)
+      .map((r, i) => ({
+        id: i + 1,
+        entry: r.entry,
+        entry_name: r.entry_name,
+        player_name: r.player_name,
+        rank: i + 1,
+        last_rank: i + 1,
+        total: r.total,
+        event_total: 35 + Math.floor(rr() * 30),
+      }));
+    return {
+      kind: "h2h" as const,
+      league: { id: l.id, name: l.name },
+      standings: { has_next: false, page: 1, results: rows },
+    };
+  })];
 
   return { bootstrap: { events, teams, elements }, fixtures, entry, picks, transfers, leagues, currentEvent };
 }

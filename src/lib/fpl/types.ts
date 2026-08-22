@@ -66,6 +66,12 @@ export interface ClassicLeagueRef {
   entry_rank?: number | null;
 }
 
+export interface H2hLeagueRef {
+  id: number;
+  name: string;
+  entry_rank?: number | null;
+}
+
 export interface EntryCore {
   id: number;
   player_first_name: string;
@@ -75,7 +81,7 @@ export interface EntryCore {
   summary_overall_rank: number | null;
   summary_event_points: number | null;
   current_event: number | null;
-  leagues?: { classic?: ClassicLeagueRef[] };
+  leagues?: { classic?: ClassicLeagueRef[]; h2h?: H2hLeagueRef[] };
 }
 
 export interface Pick {
@@ -139,6 +145,7 @@ export interface StandingRow {
 }
 
 export interface LeagueStandings {
+  kind: "classic" | "h2h";
   league: { id: number; name: string };
   standings: { has_next: boolean; page: number; results: StandingRow[] };
 }

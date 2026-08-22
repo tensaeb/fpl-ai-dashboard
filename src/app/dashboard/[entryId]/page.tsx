@@ -1,6 +1,5 @@
 import { Countdown, LiveClockBadge } from "@/components/dashboard/chrome";
-import { DashboardView } from "@/components/dashboard/dashboard-view";
-import { MobileNav } from "@/components/dashboard/mobile-nav";
+import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import type { PlayerMeta } from "@/components/dashboard/report";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -115,87 +114,82 @@ export default async function DashboardPage({ params }: { params: Promise<{ entr
 
   return (
     <main className="relative min-h-screen transition-colors duration-200">
-      {/* Top ambient glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[480px] overflow-hidden">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-radial from-emerald-500/10 dark:from-emerald-500/15 via-transparent to-transparent blur-3xl" />
-        <div className="grid-bg absolute inset-0 opacity-40" />
+      {/* Subtle top ambient glow — kept but reduced */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[300px] overflow-hidden">
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 h-[300px] w-[600px] rounded-full bg-radial from-emerald-500/8 dark:from-emerald-500/12 via-transparent to-transparent blur-3xl" />
       </div>
 
-      {/* Top sticky navigation bar */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-white/5 bg-white/85 dark:bg-[#090d16]/85 backdrop-blur-xl safe-top">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8">
-          <div className="flex items-center gap-6">
-            <Logo size="sm" />
-          </div>
+      {/* ── Primary sticky nav ── */}
+      <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-white/5 bg-white/90 dark:bg-[#090d16]/90 backdrop-blur-xl safe-top">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-4 py-2.5 sm:px-8">
+          <Logo size="sm" />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <LiveClockBadge fetchedAt={bundle.fetchedAt} mode={bundle.mode} />
+            <ThemeToggle />
             <Link
               href="/account"
               className="hidden items-center gap-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100/80 dark:bg-white/5 px-3 py-1.5 font-mono text-xs text-slate-700 dark:text-slate-300 transition-colors hover:border-emerald-500/40 sm:flex"
             >
               <UserRound className="h-3.5 w-3.5 text-emerald-500" />
-              <span>Account</span>
+              Account
             </Link>
-            <ThemeToggle />
-            <LiveClockBadge fetchedAt={bundle.fetchedAt} mode={bundle.mode} />
-            <MobileNav />
           </div>
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto max-w-[1440px] space-y-8 px-5 pb-24 pt-6 sm:px-8">
-        {/* Manager Header & Overview Banner */}
+      {/* ── GW identity + deadline strip ── */}
+      <div className="border-b border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.02]">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
+          <div className="rise flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                {event?.name ?? "Gameweek"}
+              </span>
+              <span className="h-3.5 w-px bg-slate-300 dark:bg-white/10" />
+              <span className="font-mono text-[11px] text-slate-400">#{bundle.entryId || raw}</span>
+            </div>
+            <h1 className="font-display text-xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
+              {bundle.entry.name}
+            </h1>
+            <p className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+              {manager}
+              {bundle.entry.summary_overall_rank
+                ? ` · Rank #${fmtRank(bundle.entry.summary_overall_rank)}`
+                : ""}
+            </p>
+          </div>
+
+          {norm.deadline && (
+            <div className="rise rise-1 flex flex-col items-end gap-1">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                Deadline
+              </p>
+              <Countdown deadline={norm.deadline} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-[1440px] space-y-8 px-5 pb-28 pt-6 sm:px-8 lg:pb-16">
+        {/* Demo banner */}
         <section>
           {bundle.mode === "demo" && (
-            <div className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-3 text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-3 rounded-xl border border-amber-400/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-amber-900 dark:text-amber-200">
               <Info className="h-4 w-4 shrink-0 text-amber-500" />
               <p className="font-mono text-xs leading-relaxed">
                 Demo dataset active
-                {isDemoSlug
-                  ? " — viewing simulation squad."
-                  : ` — live data unavailable, fallback simulation rendered.`}{" "}
-                <Link href="/" className="underline underline-offset-4 font-bold hover:text-emerald-500">
-                  Switch to your real entry ID
+                {isDemoSlug ? " — simulation squad." : " — live data unavailable."}{" "}
+                <Link href="/" className="font-bold underline underline-offset-4 hover:text-emerald-600">
+                  Use your real entry ID
                 </Link>
               </p>
             </div>
           )}
-
-          <div className="flex flex-wrap items-end justify-between gap-6 pb-2">
-            <div className="rise">
-              <div className="flex items-center gap-2 font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-400">
-                <span>{event?.name ?? "Gameweek"}</span>
-                <span>·</span>
-                <span>Team #{bundle.entryId || raw}</span>
-              </div>
-              <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-                {bundle.entry.name}
-              </h1>
-              <p className="mt-1 font-mono text-xs tracking-wide text-slate-500 dark:text-slate-400">
-                Manager: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{manager}</strong>
-                {bundle.entry.summary_overall_rank ? (
-                  <>
-                    {" "}· Rank: <span className="font-bold text-slate-900 dark:text-white">#{fmtRank(bundle.entry.summary_overall_rank)}</span> Overall
-                  </>
-                ) : null}
-              </p>
-            </div>
-
-            {norm.deadline && (
-              <div className="panel rise rise-1 rounded-2xl p-3.5 sm:px-5">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                  Transfer Deadline
-                </p>
-                <div className="mt-1">
-                  <Countdown deadline={norm.deadline} />
-                </div>
-              </div>
-            )}
-          </div>
         </section>
 
         {/* Dynamic Feature Tabs & Dashboard View Coordinator */}
-        <DashboardView
+        <DashboardClient
           bundle={bundle}
           norm={norm}
           report={report}

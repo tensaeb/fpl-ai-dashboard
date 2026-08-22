@@ -45,12 +45,14 @@ preamble, no markdown fences:
   "captain_suggestion": {"player": <string>, "playerId": <int>, "reasoning": <string>},
   "vice_captain_suggestion": {"player": <string>, "playerId": <int>, "reasoning": <string>},
   "transfer_suggestions": [
-    {"out": <string>, "outId": <int>, "in": <string>, "inId": <int>, "cost_delta": <float>, "reasoning": <string>}
+    {"out": <string>, "outId": <int>, "in": <string>, "inId": <int>, "cost_delta": <float>, "gameweek": <int>, "reasoning": <string>}
   ],
   "dos": [<string>, ...],
   "donts": [<string>, ...],
   "confidence": "high" | "medium" | "low"
 }
+
+Include transfer suggestions for the current gameweek and the next two gameweeks (if relevant). Set gameweek to the target gameweek number for each suggestion.
 
 playerId / outId / inId must be copied from the payload's id fields.
 If the payload lacks enough information to responsibly recommend a

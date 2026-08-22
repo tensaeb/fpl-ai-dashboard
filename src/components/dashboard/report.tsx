@@ -1,45 +1,68 @@
+"use client";
+
 import { fmtNum } from "@/lib/format";
 import type { StoredReport } from "@/lib/report/service";
 import {
   ArrowRightLeft,
-  BadgeCheck,
   CheckCircle2,
-  CircleSlash2,
-  Cpu,
+  ChevronDown,
+  ChevronUp,
   Crown,
+  Shield,
   Sparkles,
-  Swords,
   XCircle,
-  Zap,
 } from "lucide-react";
+import { useState } from "react";
 import { ExportBrief } from "./export-brief";
 import { RegenerateButton } from "./regenerate";
 
 export interface PlayerMeta {
   team: string;
   pos: string;
-  price: number; // £0.1m
+  price: number; // £0.1m units
 }
 
-const CONFIDENCE_STYLE: Record<string, { dot: string; label: string; text: string }> = {
-  high: { dot: "bg-[#00f59b]", label: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300", text: "High" },
-  medium: { dot: "bg-[#fbbf24]", label: "border-amber-500/30 bg-amber-500/10 text-amber-300", text: "Medium" },
-  low: { dot: "bg-[#f43f5e]", label: "border-rose-500/30 bg-rose-500/10 text-rose-300", text: "Low" },
-};
+const CONFIDENCE_CONFIG = {
+  high:   { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", label: "High", pct: 85 },
+  medium: { bar: "bg-amber-400",   text: "text-amber-600 dark:text-amber-400",     label: "Medium", pct: 60 },
+  low:    { bar: "bg-rose-500",    text: "text-rose-600 dark:text-rose-400",        label: "Low", pct: 35 },
+} as const;
 
-function MetaLine({ name, id, meta }: { name: string; id?: number; meta: Record<number, PlayerMeta> }) {
-  const m = id != null ? meta[id] : undefined;
+// ─── Collapsible reasoning block ─────────────────────────────────────────────
+
+function Reasoning({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="min-w-0">
-      <p className="truncate font-display text-sm font-bold text-white">{name}</p>
-      {m && (
-        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-400">
-          {m.team} · {m.pos} · £{fmtNum(m.price / 10)}m
+    <div className="mt-3">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+      >
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        {open ? "Hide reasoning" : "Why?"}
+      </button>
+      {open && (
+        <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400 border-l-2 border-slate-200 dark:border-white/10 pl-3">
+          {text}
         </p>
       )}
     </div>
   );
 }
+
+// ─── Meta sub-line ────────────────────────────────────────────────────────────
+
+function MetaSub({ id, meta }: { id?: number; meta: Record<number, PlayerMeta> }) {
+  const m = id != null ? meta[id] : undefined;
+  if (!m) return null;
+  return (
+    <p className="mt-0.5 font-mono text-[11px] uppercase tracking-wider text-slate-400">
+      {m.team} · {m.pos} · £{fmtNum(m.price / 10)}m
+    </p>
+  );
+}
+
+// ─── Main export ─────────────────────────────────────────────────────────────
 
 export function ReportSection({
   report,
@@ -54,8 +77,8 @@ export function ReportSection({
 }) {
   if (!report) {
     return (
-      <div className="panel rounded-3xl p-10 text-center">
-        <p className="font-mono text-sm text-slate-400">Report unavailable for this gameweek.</p>
+      <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/[0.02] p-8 text-center">
+        <p className="font-mono text-sm text-slate-400">No brief available for this gameweek.</p>
         <div className="mt-5 flex justify-center">
           <RegenerateButton entryId={entryId} demo={demo} />
         </div>
@@ -64,217 +87,233 @@ export function ReportSection({
   }
 
   const r = report.payload;
-  const conf = CONFIDENCE_STYLE[r.confidence] ?? CONFIDENCE_STYLE.low;
-  const cap = r.captain_suggestion;
+  const conf = CONFIDENCE_CONFIG[r.confidence as keyof typeof CONFIDENCE_CONFIG] ?? CONFIDENCE_CONFIG.low;
+  const cap  = r.captain_suggestion;
   const vice = r.vice_captain_suggestion;
 
   return (
-    <div className="space-y-5">
-      {/* Control / Metadata Strip */}
-      <div className="panel flex flex-wrap items-center justify-between gap-4 rounded-2xl px-5 py-3.5">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className={`flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider ${conf.label}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${conf.dot}`} />
-            {conf.text} Confidence
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-slate-300">
-            <Cpu className="h-3 w-3 text-slate-400" />
-            {report.engine}
-          </span>
-          <span className="hidden sm:inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-[11px] tracking-wider text-slate-400">
+    <div className="space-y-4">
+
+      {/* ── Top bar: confidence + controls ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/[0.02] px-4 py-3">
+        <div className="flex items-center gap-3">
+          {/* Confidence bar */}
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-24 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${conf.bar}`}
+                style={{ width: `${conf.pct}%` }}
+              />
+            </div>
+            <span className={`font-mono text-xs font-bold ${conf.text}`}>
+              {conf.label} confidence
+            </span>
+          </div>
+
+          <span className="hidden h-3.5 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+          <span className="hidden font-mono text-[11px] text-slate-400 sm:block">
             {new Date(report.createdAt).toLocaleString("en-GB", {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
+              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
             })}
           </span>
         </div>
-        <div className="flex items-center gap-2.5">
+
+        <div className="flex items-center gap-2">
           <ExportBrief report={report} />
           <RegenerateButton entryId={entryId} demo={demo} />
         </div>
       </div>
 
-      {/* Strategic Headline */}
+      {/* ── Headline ── */}
       {r.headline && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-3.5">
-          <p className="font-display text-lg font-bold text-white sm:text-xl">
+        <div className="rounded-xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-white/[0.02] px-5 py-3.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+              Gameweek Summary
+            </span>
+          </div>
+          <p className="font-display text-base font-bold text-slate-900 dark:text-white sm:text-lg">
             &ldquo;{r.headline}&rdquo;
           </p>
         </div>
       )}
 
-      {/* League Intel Note if available */}
-      {r.league_note && (
-        <div className="panel flex items-start gap-3.5 rounded-2xl border-violet/30 bg-violet/[0.04] p-4.5">
-          <Swords className="h-5 w-5 shrink-0 text-violet mt-0.5" />
-          <p className="text-xs leading-relaxed text-slate-300 sm:text-sm">
-            <strong className="font-mono text-[10px] font-bold uppercase tracking-widest text-violet block mb-1">
-              Mini-League Intel
-            </strong>
-            {r.league_note}
-          </p>
+      {/* ── Captain + Vice side-by-side ── */}
+      <div className="grid gap-4 sm:grid-cols-2">
+
+        {/* Captain */}
+        <div className="rounded-xl border border-amber-300/50 dark:border-amber-400/25 bg-amber-50 dark:bg-amber-400/[0.05] p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-amber-600 dark:text-amber-400">
+              <Crown className="h-3.5 w-3.5" /> Captain
+            </span>
+            <span className="rounded-full bg-amber-100 dark:bg-amber-400/15 px-2.5 py-0.5 font-mono text-[10px] font-bold text-amber-700 dark:text-amber-300">
+              Recommended
+            </span>
+          </div>
+          <h3 className="font-display text-2xl font-extrabold text-slate-900 dark:text-white sm:text-3xl">
+            {cap.player}
+          </h3>
+          <MetaSub id={cap.playerId} meta={meta} />
+          <Reasoning text={cap.reasoning} />
         </div>
-      )}
 
-      {/* Captaincy Decisions Row */}
-      <div className="grid gap-5 lg:grid-cols-12">
-        {/* Main Captain Card */}
-        <article className="panel panel-hover relative overflow-hidden rounded-3xl p-6 sm:p-8 lg:col-span-7">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-400/10 blur-3xl" />
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-amber-300">
-              <Crown className="h-4 w-4" /> Captaincy Armband
-            </span>
-            <span className="rounded-full bg-amber-400/10 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-amber-300 border border-amber-400/20">
-              Short-Horizon
-            </span>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-baseline justify-between gap-4">
-            <div>
-              <h3 className="font-display text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-                {cap.player}
-              </h3>
-              {cap.playerId != null && meta[cap.playerId] && (
-                <p className="mt-1.5 font-mono text-xs uppercase tracking-wider text-slate-400">
-                  {meta[cap.playerId].team} · {meta[cap.playerId].pos} · £{fmtNum(meta[cap.playerId].price / 10)}m
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-1 rounded-xl bg-neon/15 px-3 py-1.5 font-mono text-xs font-bold text-neon border border-neon/30">
-              <Sparkles className="h-3.5 w-3.5" /> Optimal Pick
-            </div>
-          </div>
-
-          <p className="mt-5 text-sm leading-relaxed text-slate-300 sm:text-[15px] border-t border-white/5 pt-4">
-            {cap.reasoning}
-          </p>
-        </article>
-
-        {/* Vice-Captain & Filter Note */}
-        <div className="flex flex-col gap-5 lg:col-span-5">
-          <article className="panel panel-hover flex-1 rounded-3xl p-6">
-            <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-glow">
+        {/* Vice-Captain */}
+        <div className="rounded-xl border border-sky-300/50 dark:border-sky-400/25 bg-sky-50 dark:bg-sky-400/[0.05] p-5">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Shield className="h-3.5 w-3.5 text-sky-500" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-sky-600 dark:text-sky-400">
               Vice-Captain
             </span>
-            <h4 className="mt-2 font-display text-2xl font-bold text-white sm:text-3xl">
-              {vice.player}
-            </h4>
-            {vice.playerId != null && meta[vice.playerId] && (
-              <p className="mt-1 font-mono text-xs uppercase tracking-wider text-slate-400">
-                {meta[vice.playerId].team} · {meta[vice.playerId].pos} · £{fmtNum(meta[vice.playerId].price / 10)}m
-              </p>
-            )}
-            <p className="mt-3 text-xs leading-relaxed text-slate-300">{vice.reasoning}</p>
-          </article>
-
-          <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
-            <BadgeCheck className="h-5 w-5 shrink-0 text-neon" />
-            <p className="font-mono text-[11px] leading-relaxed text-slate-300">
-              <span className="font-bold text-neon">Hard Filter Active.</span> Injured, suspended, and ≤75% doubtful assets were excluded prior to scoring.
-            </p>
           </div>
+          <h3 className="font-display text-2xl font-extrabold text-slate-900 dark:text-white sm:text-3xl">
+            {vice.player}
+          </h3>
+          <MetaSub id={vice.playerId} meta={meta} />
+          <Reasoning text={vice.reasoning} />
         </div>
       </div>
 
-      {/* Suggested Transfer Moves */}
+      {/* ── Transfers ── */}
       <div>
-        <h4 className="mb-3.5 font-mono text-xs font-bold uppercase tracking-[0.2em] text-slate-300">
+        <h4 className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
           Transfer Strategy
         </h4>
 
         {r.transfer_suggestions.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {r.transfer_suggestions.map((t, i) => (
-              <article
-                key={`transfer-move-${i}-${t.out}-${t.in}`}
-                className="panel panel-hover flex flex-col justify-between rounded-3xl p-5"
-              >
-                <div>
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <span className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-violet">
-                      <ArrowRightLeft className="h-3.5 w-3.5" /> Move {i + 1}
-                    </span>
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold tabular ${
-                        t.cost_delta > 0
-                          ? "bg-amber-400/15 text-amber-300 border border-amber-400/20"
-                          : "bg-emerald-400/15 text-emerald-300 border border-emerald-400/20"
-                      }`}
-                    >
-                      {t.cost_delta > 0 ? `+£${fmtNum(t.cost_delta)}m` : `−£${fmtNum(Math.abs(t.cost_delta))}m`}
-                    </span>
+          <div className="space-y-4">
+            {(() => {
+              const grouped = new Map<number, typeof r.transfer_suggestions>();
+              r.transfer_suggestions.forEach((t) => {
+                const gw = t.gameweek ?? 0;
+                if (!grouped.has(gw)) grouped.set(gw, []);
+                grouped.get(gw)!.push(t);
+              });
+              return Array.from(grouped.entries()).sort(([a], [b]) => a - b).map(([gw, moves]) => (
+                <div key={gw} className="space-y-3">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-400 dark:text-indigo-300">
+                    {gw === 0 ? "Current GW" : `Gameweek ${gw}`}
+                  </p>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {moves.map((t, i) => (
+                      <div
+                        key={`transfer-${gw}-${i}-${t.out}-${t.in}`}
+                        className="rounded-xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/[0.02] p-4"
+                      >
+                        {/* Out → In */}
+                        <div className="flex items-stretch gap-2">
+                          <div className="flex-1 rounded-lg border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 px-3 py-2.5">
+                            <span className="font-mono text-[9px] font-bold uppercase text-rose-500">Out</span>
+                            <p className="mt-0.5 font-display text-sm font-bold text-slate-900 dark:text-white truncate">
+                              {t.out}
+                            </p>
+                            {t.outId && meta[t.outId] && (
+                              <p className="font-mono text-[10px] text-slate-400">{meta[t.outId].team} · {meta[t.outId].pos}</p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center text-slate-300 dark:text-slate-600">
+                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                          </div>
+
+                          <div className="flex-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5">
+                            <span className="font-mono text-[9px] font-bold uppercase text-emerald-600 dark:text-emerald-400">In</span>
+                            <p className="mt-0.5 font-display text-sm font-bold text-slate-900 dark:text-white truncate">
+                              {t.in}
+                            </p>
+                            {t.inId && meta[t.inId] && (
+                              <p className="font-mono text-[10px] text-slate-400">{meta[t.inId].team} · {meta[t.inId].pos}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Cost delta */}
+                        <div className="mt-3 flex items-center justify-between">
+                          <span
+                            className={[
+                              "rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold",
+                              t.cost_delta > 0
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300"
+                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300",
+                            ].join(" ")}
+                          >
+                            {t.cost_delta > 0 ? `−£${fmtNum(t.cost_delta)}m` : `+£${fmtNum(Math.abs(t.cost_delta))}m freed`}
+                          </span>
+                          <span className="font-mono text-[10px] text-slate-400">
+                            {moves.length > 1 ? `Move ${i + 1}` : "Suggested"}
+                          </span>
+                        </div>
+
+                        <Reasoning text={t.reasoning} />
+                      </div>
+                    ))}
                   </div>
-
-                  <div className="mt-3.5 space-y-2">
-                    <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3.5 py-2.5">
-                      <span className="rounded bg-rose-500/20 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-pulse">
-                        OUT
-                      </span>
-                      <MetaLine name={t.out} id={t.outId} meta={meta} />
-                    </div>
-                    <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2.5">
-                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase text-neon">
-                        IN
-                      </span>
-                      <MetaLine name={t.in} id={t.inId} meta={meta} />
-                    </div>
-                  </div>
-
-                  <p className="mt-3.5 text-xs leading-relaxed text-slate-300">{t.reasoning}</p>
                 </div>
-
-                <div className="mt-4 border-t border-white/5 pt-2 text-right">
-                  <span className="font-mono text-[10px] text-slate-400">Budget verified</span>
-                </div>
-              </article>
-            ))}
+              ));
+            })()}
           </div>
         ) : (
-          <div className="panel flex items-center gap-4 rounded-3xl border-emerald-500/25 p-6">
-            <CheckCircle2 className="h-7 w-7 shrink-0 text-neon" />
+          <div className="flex items-center gap-3.5 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/[0.06] px-4 py-3.5">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
             <div>
-              <p className="font-display text-base font-bold text-white">Hold free transfer recommended.</p>
-              <p className="mt-0.5 text-xs text-slate-400">
-                No transfer candidates provide sufficient expected return over cost this gameweek. Bank the roll for next week.
+              <p className="font-display text-sm font-bold text-slate-900 dark:text-white">Hold — no move recommended</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                Bank the free transfer for next week.
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Do & Don't Guidelines */}
-      <div className="grid gap-5 md:grid-cols-2">
-        <article className="panel rounded-3xl p-6">
-          <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-[#00f59b]">
-            <CheckCircle2 className="h-4 w-4" /> Recommended Moves (Do)
+      {/* ── Do / Don't ── */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/[0.02] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+              Do
+            </span>
           </div>
-          <ul className="mt-4 space-y-3">
+          <ul className="space-y-2.5">
             {r.dos.map((d, i) => (
-              <li key={`do-item-${i}`} className="flex items-start gap-3 text-xs leading-relaxed text-slate-300">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#00f59b]" />
-                <span>{d}</span>
+              <li key={i} className="flex items-start gap-2.5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                {d}
               </li>
             ))}
           </ul>
-        </article>
+        </div>
 
-        <article className="panel rounded-3xl p-6">
-          <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-rose-400">
-            <XCircle className="h-4 w-4" /> Pitfalls To Avoid (Don&apos;t)
+        <div className="rounded-xl border border-slate-200 dark:border-white/8 bg-white dark:bg-white/[0.02] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <XCircle className="h-4 w-4 text-rose-500" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-rose-600 dark:text-rose-400">
+              Avoid
+            </span>
           </div>
-          <ul className="mt-4 space-y-3">
+          <ul className="space-y-2.5">
             {r.donts.map((d, i) => (
-              <li key={`dont-item-${i}`} className="flex items-start gap-3 text-xs leading-relaxed text-slate-300">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
-                <span>{d}</span>
+              <li key={i} className="flex items-start gap-2.5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
+                {d}
               </li>
             ))}
           </ul>
-        </article>
+        </div>
       </div>
+
+      {/* ── League note ── */}
+      {r.league_note && (
+        <div className="rounded-xl border border-indigo-200 dark:border-indigo-400/20 bg-indigo-50 dark:bg-indigo-400/[0.05] px-4 py-3.5">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-500 dark:text-indigo-400 mb-1.5">
+            Mini-League Intel
+          </p>
+          <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{r.league_note}</p>
+        </div>
+      )}
+
     </div>
   );
 }
