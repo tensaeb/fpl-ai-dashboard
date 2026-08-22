@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FPL//AI — Gameweek Intelligence",
+  title: "FPL//AI",
   description:
     "Enter your public FPL entry ID and get a structured weekly briefing: captaincy, transfer moves, fixture swings and a hard injury filter. No passwords. Unofficial.",
   manifest: "/manifest.json",
@@ -35,8 +35,10 @@ export const metadata: Metadata = {
     title: "FPL//AI",
   },
   icons: {
-    apple: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
     icon: [
+      // The logo itself is the favicon.
+      { url: "/logo/logo.svg", sizes: "any", type: "image/svg+xml" },
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],

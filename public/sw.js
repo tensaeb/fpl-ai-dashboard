@@ -16,7 +16,13 @@ const CACHE_NAME = "fplai-v2";
 const OFFLINE_URL = "/offline.html";
 
 // Assets to pre-cache on install
-const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
+const PRECACHE = [
+  OFFLINE_URL,
+  "/logo/logo.svg",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/apple-touch-icon.png",
+];
 
 // Patterns that should use cache-first (only truly immutable assets)
 const CACHE_FIRST_PATTERNS = [
